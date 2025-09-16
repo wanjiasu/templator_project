@@ -4,7 +4,12 @@ FROM python:3.12-bookworm
 WORKDIR /app
 
 # The uv installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
+# Fix apt Post-Invoke error in some environments by removing the docker-clean hook
+RUN set -eux; \
+    rm -f /etc/apt/apt.conf.d/docker-clean || true; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends curl ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
 
 # Download the latest uv installer
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
