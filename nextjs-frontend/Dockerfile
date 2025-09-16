@@ -3,14 +3,14 @@ FROM node:20-bookworm
 # Set the working directory
 WORKDIR /app
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# Use Corepack to manage pnpm (Node 20 includes Corepack)
+RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
-# Copy package files and install dependencies
-COPY package*.json ./
+# Copy package files and install dependencies (use lockfile for deterministic builds)
+COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies as root (or myappuser, depending on your structure)
-RUN pnpm install
+# Install dependencies using pnpm via Corepack
+RUN pnpm install --frozen-lockfile
 
 ## Switch to the non-root user
 USER node
