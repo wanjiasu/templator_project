@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: change_this_prod_password
+      POSTGRES_DB: mydatabase
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_net
+    restart: always
+
+  backend:
+    build:
+      context: ./fastapi_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+    env_file:
+      - ./fastapi_backend/.env
+    environment:
+      # Ensure DATABASE_URL points to db service (or to a managed DB URL)
+      DATABASE_URL: postgresql+asyncpg://postgres:change_this_prod_password@db:5432/mydatabase
+      # Recommended to disable OpenAPI endpoints in production by setting empty string
+      # OPENAPI_URL: ""
+      # Set CORS and frontend URL correctly for your domain
+      FRONTEND_URL: https://www.betaione.com
+      CORS_ORIGINS: '["https://betaione.com", "https://www.betaione.com"]'
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - app_net
+    restart: always
+
+  frontend:
+    build:
+      context: ./nextjs-frontend
+    environment:
+      NODE_ENV: production
+      # Point frontend to the public backend URL
+      API_BASE_URL: https://api.betaione.com
+    command: sh -lc "pnpm build && pnpm start -p 3000"
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - app_net
+    restart: always
+
+volumes:
+  postgres_data:
+
+networks:
+  app_net:
+    driver: bridge
